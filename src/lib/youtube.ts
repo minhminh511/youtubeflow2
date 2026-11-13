@@ -17,7 +17,7 @@ interface GoogleChannel {
   statistics?: { subscriberCount?: string; viewCount?: string; videoCount?: string };
   contentDetails?: { relatedPlaylists?: { uploads?: string } };
 }
-interface GoogleVideo {
+export interface GoogleVideo {
   id: string;
   snippet?: { title?: string; description?: string; thumbnails?: { default?: { url?: string }; medium?: { url?: string } }; tags?: string[]; categoryId?: string; publishedAt?: string };
   statistics?: { viewCount?: string; likeCount?: string; commentCount?: string };
@@ -79,7 +79,8 @@ export async function getAccessToken(workspaceId: string) {
   return (await getTokenInfo(workspaceId)).accessToken;
 }
 
-function mapVideo(video: GoogleVideo) {
+/** Shared YouTube API -> studio_videos mapping for OAuth and public sync. */
+export function mapVideo(video: GoogleVideo) {
   return {
     youtubeVideoId: video.id,
     title: video.snippet?.title || "Video không có tiêu đề",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, useSyncExternalStore, type FormEvent } from "react";
 import { ArrowDownUp, ArrowRight, CalendarDays, Check, ChevronLeft, ChevronRight, Film, LayoutGrid, Lightbulb, List, Loader2, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import { Modal } from "@/components/ui";
 import { formatDate, requestJson, today } from "@/lib/client";
@@ -9,33 +9,45 @@ import type { Plan, PlanInput } from "@/lib/types";
 const formats = { video: "Video dài", short: "YouTube Shorts", live: "Livestream" };
 const statuses = { idea: "Ý tưởng", planned: "Đã lên lịch", published: "Đã hoàn thành" };
 const emptyForm = (mode: "planner" | "ideas", date?: string): PlanInput => ({ title: "", description: "", format: "video", status: mode === "ideas" ? "idea" : "planned", scheduledDate: mode === "ideas" ? null : date || today() });
-interface Props { plans: Plan[]; onChange: (plans: Plan[]) => void; mode: "planner" | "ideas"; initialized: boolean; notify: (message: string, error?: boolean) => void; newRequest: number }
+interface Props {
+  plans: Plan[];
+  onChange: (plans: Plan[]) => void;
+  mode: "planner" | "ideas";
+  initialized: boolean;
+  notify: (message: string, error?: boolean) => void;
+  newRequest: number;
+  requestedDate?: string;
+  requestedPlanId?: string;
+}
 
-export function Planner({ plans, onChange, mode, initialized, notify, newRequest }: Props) {
-  const [layout, setLayout] = useState<"calendar" | "list">("calendar");
-  const [isMobile, setIsMobile] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(today);
+const MOBILE_QUERY = "(max-width: 900px)";
+function subscribeMobile(listener: () => void) {
+  const media = window.matchMedia(MOBILE_QUERY);
+  media.addEventListener("change", listener);
+  return () => media.removeEventListener("change", listener);
+}
+const mobileSnapshot = () => window.matchMedia(MOBILE_QUERY).matches;
+const serverMobileSnapshot = () => false;
+
+export function Planner({ plans, onChange, mode, initialized, notify, newRequest, requestedDate, requestedPlanId }: Props) {
+  // Studio remounts this editor for an explicit new/open request.
+  const requested = newRequest > 0 && requestedPlanId ? plans.find((plan) => plan.id === requestedPlanId) : null;
+  const isMobile = useSyncExternalStore(subscribeMobile, mobileSnapshot, serverMobileSnapshot);
+  const [layoutChoice, setLayout] = useState<"calendar" | "list" | null>(null);
+  const layout = layoutChoice ?? (isMobile ? "list" : "calendar");
+  const [selectedDate, setSelectedDate] = useState(() => requested?.scheduledDate || requestedDate || today());
   const [month, setMonth] = useState(() => new Date());
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
   const [ascending, setAscending] = useState(true);
-  const [editing, setEditing] = useState<Plan | null | undefined>(undefined);
-  const [form, setForm] = useState<PlanInput>(() => emptyForm(mode));
+  const [editing, setEditing] = useState<Plan | null | undefined>(() => newRequest > 0 ? requested || null : undefined);
+  const [form, setForm] = useState<PlanInput>(() => requested ? {
+    title: requested.title, description: requested.description, format: requested.format,
+    status: requested.status, scheduledDate: requested.scheduledDate,
+  } : emptyForm(mode, requestedDate));
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
   const [deleting, setDeleting] = useState<Plan | null>(null);
-
-  useEffect(() => {
-    const media = window.matchMedia("(max-width: 900px)");
-    setIsMobile(media.matches);
-    if (media.matches) setLayout("list");
-    const onChange = () => setIsMobile(media.matches);
-    media.addEventListener("change", onChange);
-    return () => media.removeEventListener("change", onChange);
-  }, []);
-  useEffect(() => {
-    if (newRequest > 0) { setForm(emptyForm(mode)); setFormError(""); setEditing(null); }
-  }, [newRequest, mode]);
 
   function openEditor(plan: Plan | null = null, date?: string) {
     setFormError("");

@@ -6,6 +6,6 @@ export const dynamic = "force-dynamic";
 
 export default async function HomePage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const parameters = await searchParams;
-  const initialView = isView(parameters.view) ? parameters.view : "connections";
+  const initialView = isView(parameters.view) ? parameters.view : "overview";
   return <Studio initialConfig={getConfiguration()} initialView={initialView} />;
 }

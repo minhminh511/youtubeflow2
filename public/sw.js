@@ -1,5 +1,5 @@
 /* TubeFlow PWA: only public assets are stored. No workspace/API/OAuth data. */
-const VERSION = "tubeflow-v2";
+const VERSION = "tubeflow-workspace-v3";
 const SHELL_CACHE = `${VERSION}-shell`;
 const ASSET_CACHE = `${VERSION}-assets`;
 const OFFLINE_PAGE = "/offline.html";

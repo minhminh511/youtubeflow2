@@ -1,0 +1,98 @@
+diff --git a/src/db/schema.ts b/src/db/schema.ts
+--- a/src/db/schema.ts
++++ b/src/db/schema.ts
+@@ -36,6 +36,31 @@
+   connectedAt: timestamp("connected_at", { withTimezone: true }).notNull().defaultNow(),
+   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+ });
++
++/**
++ * Public channel cache, separate from OAuth connections.
++ * One selected public channel per workspace; never stores access/refresh tokens.
++ * Exported for server-side public synchronization modules such as youtube-public.ts.
++ */
++export const publicChannels = pgTable("public_channels", {
++  id: uuid("id").defaultRandom().primaryKey(),
++  workspaceId: uuid("workspace_id").notNull().unique().references(() => workspaces.id, { onDelete: "cascade" }),
++  handle: text("handle").notNull(),
++  channelId: text("channel_id").notNull(),
++  title: text("title").notNull(),
++  description: text("description").notNull().default(""),
++  thumbnail: text("thumbnail"),
++  subscribers: text("subscribers").notNull().default("0"),
++  views: text("views").notNull().default("0"),
++  videoCount: text("video_count").notNull().default("0"),
++  uploadsPlaylistId: text("uploads_playlist_id"),
++  lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }).notNull().defaultNow(),
++  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
++  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
++});
++
++export type PublicChannelRow = typeof publicChannels.$inferSelect;
++export type PublicChannelInsert = typeof publicChannels.$inferInsert;
+ 
+ export const studioVideos = pgTable("studio_videos", {
+   id: uuid("id").defaultRandom().primaryKey(),
+diff --git a/src/lib/youtube.ts b/src/lib/youtube.ts
+--- a/src/lib/youtube.ts
++++ b/src/lib/youtube.ts
+@@ -17,7 +17,7 @@
+   statistics?: { subscriberCount?: string; viewCount?: string; videoCount?: string };
+   contentDetails?: { relatedPlaylists?: { uploads?: string } };
+ }
+-interface GoogleVideo {
++export interface GoogleVideo {
+   id: string;
+   snippet?: { title?: string; description?: string; thumbnails?: { default?: { url?: string }; medium?: { url?: string } }; tags?: string[]; categoryId?: string; publishedAt?: string };
+   statistics?: { viewCount?: string; likeCount?: string; commentCount?: string };
+@@ -79,7 +79,8 @@
+   return (await getTokenInfo(workspaceId)).accessToken;
+ }
+ 
+-function mapVideo(video: GoogleVideo) {
++/** Shared YouTube API -> studio_videos mapping for OAuth and public sync. */
++export function mapVideo(video: GoogleVideo) {
+   return {
+     youtubeVideoId: video.id,
+     title: video.snippet?.title || "Video không có tiêu đề",
+diff --git a/tests/contracts/youtube-public-imports.ts b/tests/contracts/youtube-public-imports.ts
+new file mode 100644
+--- /dev/null
++++ b/tests/contracts/youtube-public-imports.ts
+@@ -0,0 +1,36 @@
++/**
++ * Compile-time regression for the imports used by youtube-public.ts.
++ * Included by the root tsconfig, so both `tsc --noEmit` and `next build` check it.
++ * Not imported by the app and has no top-level database/network side effects.
++ */
++import {
++  publicChannels,
++  studioVideos,
++  type PublicChannelInsert,
++  type PublicChannelRow,
++} from "@/db/schema";
++import { mapVideo, type GoogleVideo } from "@/lib/youtube";
++
++export function publicSyncImportContract(channel: PublicChannelRow, video: GoogleVideo) {
++  const channelValues: PublicChannelInsert = {
++    workspaceId: channel.workspaceId,
++    handle: channel.handle,
++    channelId: channel.channelId,
++    title: channel.title,
++    description: channel.description,
++    thumbnail: channel.thumbnail,
++    subscribers: channel.subscribers,
++    views: channel.views,
++    videoCount: channel.videoCount,
++    uploadsPlaylistId: channel.uploadsPlaylistId,
++    lastSyncedAt: new Date(),
++    updatedAt: new Date(),
++  };
++
++  const videoValues: typeof studioVideos.$inferInsert = {
++    workspaceId: channel.workspaceId,
++    ...mapVideo(video),
++  };
++
++  return { table: publicChannels, channelValues, videoValues };
++}

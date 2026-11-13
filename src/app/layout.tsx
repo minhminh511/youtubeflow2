@@ -7,14 +7,16 @@ import "./deployment-diagnostics.css";
 import "./studio-workspace.css";
 import "./strategy.css";
 import "./media-editor.css";
+import "./workspace-design.css";
+import "./platform-design.css";
+import "./legal.css";
 
 export const metadata: Metadata = {
-  title: "Kết nối kênh · TubeFlow",
-  description: "Không gian sáng tạo của bạn. Kết nối YouTube an toàn, khám phá dữ liệu và lên kế hoạch nội dung với TubeFlow.",
+  title: "Tổng quan · TubeFlow",
+  description: "Không gian dành cho nhà sáng tạo. Sắp xếp ý tưởng, lên lịch, biên tập và phát triển kênh YouTube cùng TubeFlow.",
   applicationName: "TubeFlow",
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, title: "TubeFlow", statusBarStyle: "default" },
-  // Next.js emits the standard capable tag; retain Apple's tag for older iOS.
   other: { "apple-mobile-web-app-capable": "yes" },
   icons: {
     icon: [{ url: "/icon.svg", type: "image/svg+xml" }, { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
@@ -28,7 +30,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#f8f7fc",
+  themeColor: "#f7f8fc",
   colorScheme: "light",
 };
 

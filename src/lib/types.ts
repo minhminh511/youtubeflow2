@@ -1,4 +1,4 @@
-export const VIEWS = ["connections", "overview", "planner", "ideas", "analytics", "settings", "studio", "strategy", "monetization", "editor"] as const;
+export const VIEWS = ["connections", "overview", "planner", "ideas", "analytics", "settings", "studio", "strategy", "monetization", "editor", "facebook", "tiktok"] as const;
 export type View = typeof VIEWS[number];
 export function isView(value: unknown): value is View {
   return typeof value === "string" && VIEWS.some((view) => view === value);

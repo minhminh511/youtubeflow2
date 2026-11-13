@@ -20,6 +20,20 @@ export default async function configureNext(phase: string): Promise<NextConfig> 
 
   return {
     allowedDevOrigins,
+    /**
+     * TikTok's URL-prefix check fetches /tiktok<SIGNATURE>.txt — the file name contains the
+     * signature, so it cannot be a fixed static file. Rewrite any tiktok*.txt at the site root
+     * to the single handler that serves the token from TIKTOK_SITE_VERIFICATION.
+     */
+    async rewrites() {
+      return {
+        beforeFiles: [
+          { source: "/:file(tiktok.+\.txt)", destination: "/tiktok-developers-site-verification.txt" },
+        ],
+        afterFiles: [],
+        fallback: [],
+      };
+    },
     async headers() {
       return [
         {
@@ -35,6 +49,7 @@ export default async function configureNext(phase: string): Promise<NextConfig> 
         { source: "/fonts/font-faces.css", headers: [{ key: "Cache-Control", value: "no-cache" }, { key: "Content-Type", value: "text/css; charset=utf-8" }] },
         { source: "/manifest.webmanifest", headers: [{ key: "Cache-Control", value: "public, max-age=0, must-revalidate" }] },
         { source: "/offline.html", headers: [{ key: "Cache-Control", value: "no-cache" }, { key: "X-Content-Type-Options", value: "nosniff" }] },
+        { source: "/tiktok-developers-site-verification.txt", headers: [{ key: "Content-Type", value: "text/plain; charset=utf-8" }, { key: "Cache-Control", value: "no-store" }, { key: "X-Content-Type-Options", value: "nosniff" }] },
       ];
     },
   };
